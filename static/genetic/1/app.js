@@ -104,6 +104,8 @@ var maze = (function(){
 ///  - 10 : South
 ///  - 11 : West
 var Genome = (function(){
+    var directions = [ 'n', 'e', 's', 'w' ];
+
     /// Constructor.
     ///
     /// This has one parameter which can be either a Genome to copy or an
@@ -215,6 +217,9 @@ var Genome = (function(){
         return litter;
     };
 
+    /// Runs this Genome through the maze and caclulates its fitness score.
+    ///
+    /// @return {Number} The fitness score of this genome.
     Genome.prototype.test = function(){
         // Run this path through the maze.
         var route    = _decode.call( this );
@@ -222,6 +227,7 @@ var Genome = (function(){
         var end      = maze.end;
         var position = start.concat([]);
         for( var i in route ){
+            // Adjust our position according to the move we are going to make.
             var move = route[i];
             var nextPosition = position.concat([]);
             if( move == 'n' ){
@@ -236,12 +242,13 @@ var Genome = (function(){
             else {
                 --nextPosition[0];
             }
+            
             // Only take the next step if it is blank or the end of the maze.
-            var nextCell = maze[ nextPosition[1] ][ nextPosition[0] ];
-            if( nextCell === 0 ){
+            var nextCell = maze.getTile.apply( maze, nextPosition );
+            if( nextCell == 'B' ){
                 position = nextPosition;
             }
-            else if( nextCell == 8 ){
+            else if( nextCell == 'E' ){
                 // We're done!
                 position = nextPosition;
                 break;
@@ -252,10 +259,14 @@ var Genome = (function(){
         var distance = [ Math.abs( position[0] - end[0] ), Math.abs( position[1] - end[1] ) ];
         this._fitness = 1.0 / ( distance[0] + distance[1] + 1 );
         return this._fitness;
-    }
+    };
 
+    /// Translates this Genome's genes into a route to follow through the maze.
+    ///
+    /// @this {Genome}
+    ///
+    /// @return {Array<String>} An array of cardinal directions to take.
     function _decode(){
-        var directions = [ 'n', 'e', 's', 'w' ];
         var route = [];
         for( var i = 0; i < this._genes.length; i += this._geneSize ){
             var geneHigh = this._genes[i];
@@ -266,6 +277,9 @@ var Genome = (function(){
         return route;
     }
 
+    /// Returns the Genome's fitness score.
+    ///
+    /// @return {Number} The fitness score.
     Genome.prototype.getFitness = function(){
         return this._fitness;
     };
@@ -273,28 +287,52 @@ var Genome = (function(){
     return Genome;
 })();
 
-
+/// The Resolver runs the genetic algorithm until a solution is found.
 var Resolver = (function(){
+    /// Constructor takes a map of optional arguments.
+    ///
+    /// The Resolver can be configured with:
+    /// - {Number} crossOverRate
+    /// - {Number} mutationRate
+    /// - {Number} populationSize
+    /// - {Number} genomeLength
+    /// - {Number} errorTolerance
+    /// - {Number} maxGenerations
+    ///
+    /// @param {Object} args Configuration mapping.
     function Resolver( args ){
         this._population = [];
         this._args = $.extend({
             crossOverRate  : 0.7,
             mutationRate   : 0.001,
             populationSize : 150,
-            genomeLength   : 70
+            genomeLength   : 70,
+            errorTolerance : 0.01,
+            maxGenerations : 1000
         }, args );
         this._fittestIndex = null;
         this._bestFitness  = 0;
         this._totalFitness = 0;
-        this._generationCounter = 0;
+        this._generationCounter = 1;
 
         _generateRandomPopulation.call( this );
     }
 
+    /// Performs the chosen selection method to fetch a single individual.
+    ///
+    /// @type {Resolver}
+    ///
+    /// @return {Genome} The selected individual.
     function _selector(){
+        // Only one method of selection currently.
         return _rouletteWheelSelection.call( this );
     }
 
+    /// Select a random individual, weighted by their fitness.
+    ///
+    /// @this {Resolver}
+    ///
+    /// @return {Genome} The selected individual.
     function _rouletteWheelSelection(){
         // Pick a winner and then total up the genome fitness scores until it is
         // greater than the winningSlice value.
@@ -312,11 +350,17 @@ var Resolver = (function(){
         throw new Error( 'Roulette wheel selection failed... somehow.' );
     }
     
+    /// Updates the fitness score of every individual in the current population.
+    ///
+    /// @this {Resolver}
     function _updateFitnessScores(){
         this._totalFitness = 0;
         for( var i in this._population ){
+            // Update the genome
             var genome  = this._population[i];
             var fitness = genome.test();
+            
+            // Is this our new best?
             if( fitness > this._bestFitness ){
                 this._bestFitness  = fitness;
                 this._fittestIndex = i;
@@ -325,6 +369,9 @@ var Resolver = (function(){
         }
     }
     
+    /// Creates a fresh population with no parameters.
+    ///
+    /// @this {Resolver}
     function _generateRandomPopulation(){
         var maxPopSize   = this._args.populationSize;
         var genomeLength = this._args.genomeLength;
@@ -333,9 +380,12 @@ var Resolver = (function(){
         }
     }
 
+    /// Runs the resolver until the generation limit is hit or a solution is
+    /// found.
     Resolver.prototype.run = function(){
     };
-    
+
+    /// Tests the current generation and then generates the next one.
     Resolver.prototype.step = function(){
         _updateFitnessScores.call( this );
         var babies = [];
@@ -350,13 +400,24 @@ var Resolver = (function(){
         ++this._generationCounter;
     };
     
+    /// Displays the path of the provided genome.
+    ///
+    /// If no genome is provided then the fittest one is used.
+    ///
+    /// @param {Genome} genome The genome to render.
     Resolver.prototype.render = function( genome ){
     };
 
+    /// Gets the number of the current generation.
+    ///
+    /// @return {Number} The current generation's number.
     Resolver.prototype.getGeneration = function(){
         return this._generationCounter;
     };
     
+    /// Gets the most fit Genome from the current population.
+    ///
+    /// @return {Genome} The most fit Genome.
     Resolver.prototype.getFittestGenome = function(){
         return this._population[ this._fittestIndex ];
     };
