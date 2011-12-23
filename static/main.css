@@ -1,0 +1,11 @@
+#canvasContainer {
+    text-align : center;
+}
+
+#canvasContainer > canvas {
+    border : 1px solid black;
+};
+
+#controlContainer {
+    border: 1px solid black;
+}
