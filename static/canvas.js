@@ -8,7 +8,9 @@ $(function(){
     var _height  = _canvas.height();
     var _self = {
         canvas  : _canvas,
-        context : _context
+        context : _context,
+        width   : _width,
+        height  : _height
     };
     
     _self.clear = function(){
@@ -37,7 +39,7 @@ $(function(){
         // Save our current position, move to our new one, and start the path.
         _context.save();
         _context.beginPath();
-        _CRC2D.moveTo.apply( _context, center );
+        _CRC2D.translate.apply( _context, center );
         
         // Loop through the shape and draw lines around it.
         for( var i in shape ){
