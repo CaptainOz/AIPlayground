@@ -1,4 +1,6 @@
-var maze = (function(){
+var g_canvas = g_canvas || {};
+var g_maze = null;
+$(function(){
     // The maze is just an array of integers.
     //  1 - A wall.
     //  0 - An open area.
@@ -7,16 +9,17 @@ var maze = (function(){
     var S = 2;
     var E = 3;
     var maze = [
-        [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ],
-        [ 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1 ],
-        [ E, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1 ],
-        [ 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1 ],
-        [ 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1 ],
-        [ 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1 ],
-        [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1 ],
-        [ 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, S ],
-        [ 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1 ],
-        [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+        //0  1  2  3  4  5  6  7  8  9 10 11 12 13 14
+        [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ], // 0
+        [ 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1 ], // 1
+        [ E, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1 ], // 2
+        [ 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1 ], // 3
+        [ 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1 ], // 4
+        [ 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1 ], // 5
+        [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1 ], // 6
+        [ 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, S ], // 7
+        [ 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1 ], // 8
+        [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]  // 9
     ];
     
     // Calculate a few constant values used for rendering.
@@ -25,9 +28,9 @@ var maze = (function(){
         height : maze.length,
         tile   : [ 'B', 'W', 'S', 'E' ]
     };
-    var pixelWidth   = Math.floor( g_canvas.width  / self.width  );
-    var pixelHeight  = Math.floor( g_canvas.height / self.height );
-    var pixelPadding = 0;
+    var pixelPadding = 1;
+    var pixelWidth   = Math.floor( g_canvas.width  / self.width  ) - pixelPadding;
+    var pixelHeight  = Math.floor( g_canvas.height / self.height ) - pixelPadding;
 
     // Find the start and end locations
     var start = null;
@@ -54,7 +57,7 @@ var maze = (function(){
     self.end   = end;
 
     /// Draws the maze onto the global canvas surface.
-    self.drawMaze = function(){
+    self.render = function(){
         // All tiles are drawn filled in, just the color is different.
         var style = {
             type : 'fill'
@@ -63,18 +66,16 @@ var maze = (function(){
         // Loop through the whole maze construct.
         for( var y in maze ){
             var row = maze[y];
-            var vertOffset  = y * pixelHeight + (y+1) * pixelPadding;
             for( var x in row ){
-                var cell = row[x];
-                var horzOffset = x * pixelWidth + (x+1) * pixelPadding;
+                var cell = self.tile[ row[x] ];
 
                 // A wall
-                if( cell == 1 ){
+                if( cell == 'W' ){
                     style.style = 'black';
                 }
                 
                 // A blank square
-                else if( cell == 0 ){
+                else if( cell == 'B' ){
                     style.style = 'white';
                 }
                 
@@ -82,9 +83,17 @@ var maze = (function(){
                 else {
                     style.style = 'red';
                 }
-                g_canvas.drawRect( pixelWidth, pixelHeight, [ horzOffset, vertOffset ], style );
+                
+                // Now draw the tile.
+                this.drawTile( [ x, y ], style );
             }
         }
+    };
+    
+    self.drawTile = function( tile, style ){
+        var vertOffset = tile[1] * (pixelHeight + pixelPadding);
+        var horzOffset = tile[0] * (pixelWidth  + pixelPadding);
+        g_canvas.drawRect( pixelWidth, pixelHeight, [ horzOffset, vertOffset ], style );
     };
     
     /// Fetches the tile type for the specified coordinates.
@@ -92,8 +101,8 @@ var maze = (function(){
         return self.tile[ maze[y][x] ];
     };
 
-    return self;
-})();
+    g_maze = self;
+});
 
 /// A genome.
 ///
@@ -139,7 +148,7 @@ var Genome = (function(){
     /// @param {Number} length The number of genes to generate.
     function _populateRandom( length ){
         for( var i = 0; i < length * this._geneSize; ++i ){
-            this._genes.push( Math.floor( Math.random * 2 ) );
+            this._genes.push( Math.floor( Math.random() * 2 ) );
         }
     }
     
@@ -222,14 +231,50 @@ var Genome = (function(){
     /// @return {Number} The fitness score of this genome.
     Genome.prototype.test = function(){
         // Run this path through the maze.
-        var route    = _decode.call( this );
-        var start    = maze.start;
-        var end      = maze.end;
-        var position = start.concat([]);
-        for( var i in route ){
+        var route    = this.getRoute();
+        var cellType = null;
+        while( (cellType = route.step()) !== null && cellType != 'E' ){}
+        
+        // Calculate the route's fitness.
+        var position = route.getPosition();
+        var end      = g_maze.end;
+        var distance = [ Math.abs( position[0] - end[0] ), Math.abs( position[1] - end[1] ) ];
+        this._fitness = 1.0 / ( distance[0] + distance[1] + 1 );
+        return this._fitness;
+    };
+
+    /// Translates this Genome's genes into a route to follow through the maze.
+    ///
+    /// @this {Genome}
+    ///
+    /// @return {Array<String>} An array of cardinal directions to take.
+    Genome.prototype.getRoute = function(){
+        var route = [];
+        for( var i = 0; i < this._genes.length; i += this._geneSize ){
+            var geneHigh = this._genes[i];
+            var geneLow  = this._genes[i + 1];
+            var move = (geneHigh << 1) ^ geneLow;
+            route.push( directions[ move ] );
+        }
+        return new Route( route );
+    };
+    
+    function Route( route ){
+        this._route    = route;
+        this._step     = 0;
+        this._position = g_maze.start.concat([]);
+    }
+    
+    Route.prototype.step = function(){
+        if( this._step >= this._route.length ){
+            return null;
+        }
+        var nextPosition = null;
+        var nextCell     = null;
+        do {
             // Adjust our position according to the move we are going to make.
-            var move = route[i];
-            var nextPosition = position.concat([]);
+            var move = this._route[ this._step++ ];
+            nextPosition = this._position.concat([]);
             if( move == 'n' ){
                 ++nextPosition[1];
             }
@@ -244,38 +289,15 @@ var Genome = (function(){
             }
             
             // Only take the next step if it is blank or the end of the maze.
-            var nextCell = maze.getTile.apply( maze, nextPosition );
-            if( nextCell == 'B' ){
-                position = nextPosition;
-            }
-            else if( nextCell == 'E' ){
-                // We're done!
-                position = nextPosition;
-                break;
-            }
-        }
-        
-        // Calculate the route's fitness.
-        var distance = [ Math.abs( position[0] - end[0] ), Math.abs( position[1] - end[1] ) ];
-        this._fitness = 1.0 / ( distance[0] + distance[1] + 1 );
-        return this._fitness;
+            nextCell = g_maze.getTile.apply( g_maze, nextPosition );
+        } while( !(nextCell == 'B' || nextCell == 'E') && this._step < this._route.length );
+        this._position = nextPosition;
+        return nextCell;
     };
-
-    /// Translates this Genome's genes into a route to follow through the maze.
-    ///
-    /// @this {Genome}
-    ///
-    /// @return {Array<String>} An array of cardinal directions to take.
-    function _decode(){
-        var route = [];
-        for( var i = 0; i < this._genes.length; i += this._geneSize ){
-            var geneHigh = this._genes[i];
-            var geneLow  = this._genes[i + 1];
-            var move = (geneHigh << 1) & geneLow;
-            route.push( directions[ move ] );
-        }
-        return route;
-    }
+    
+    Route.prototype.getPosition = function(){
+        return this._position;
+    };
 
     /// Returns the Genome's fitness score.
     ///
@@ -310,10 +332,10 @@ var Resolver = (function(){
             errorTolerance : 0.01,
             maxGenerations : 1000
         }, args );
-        this._fittestIndex = null;
+        this._fittest      = null;
         this._bestFitness  = 0;
         this._totalFitness = 0;
-        this._generationCounter = 1;
+        this._generationCounter = 0;
 
         _generateRandomPopulation.call( this );
     }
@@ -355,6 +377,7 @@ var Resolver = (function(){
     /// @this {Resolver}
     function _updateFitnessScores(){
         this._totalFitness = 0;
+        this._bestFitness  = 0;
         for( var i in this._population ){
             // Update the genome
             var genome  = this._population[i];
@@ -363,7 +386,7 @@ var Resolver = (function(){
             // Is this our new best?
             if( fitness > this._bestFitness ){
                 this._bestFitness  = fitness;
-                this._fittestIndex = i;
+                this._fittest = genome;
             }
             this._totalFitness += fitness;
         }
@@ -383,7 +406,23 @@ var Resolver = (function(){
     /// Runs the resolver until the generation limit is hit or a solution is
     /// found.
     Resolver.prototype.run = function(){
+        // Test this generation then get and render the most fit genome.
+        this.step();
+        var fittest = this.getFittestGenome();
+
+        // Now lets see if this is a good solution. If it is not a usable
+        // solution and we have not reached our generation limit then run
+        // another round.
+        var tolerableFitness = 1 - this._args.errorTolerance;
+        var fitness = fittest.getFitness();
+        var counter = this._generationCounter;
+        console.log( counter + ': ' + fitness );
+        this.render( fittest );
+        if( fitness < tolerableFitness && counter < this._args.maxGenerations ){
+            setTimeout( _run.bind( this ), 66 );
+        }
     };
+    var _run = Resolver.prototype.run;
 
     /// Tests the current generation and then generates the next one.
     Resolver.prototype.step = function(){
@@ -406,6 +445,17 @@ var Resolver = (function(){
     ///
     /// @param {Genome} genome The genome to render.
     Resolver.prototype.render = function( genome ){
+        // Redraw the map to clear previous runs.
+        g_maze.render();
+
+        var route    = (genome || this.getFittestGenome()).getRoute();
+        var tileType = null;
+        var style    = { type : 'fill', style : 'grey' };
+        while( (tileType = route.step()) !== null && tileType !== 'E' ){
+            var cell = route.getPosition();
+            g_maze.drawTile( cell, style );
+        }
+        g_maze.drawTile( route.getPosition(), { type : 'fill', style : 'purple' } );
     };
 
     /// Gets the number of the current generation.
@@ -419,10 +469,15 @@ var Resolver = (function(){
     ///
     /// @return {Genome} The most fit Genome.
     Resolver.prototype.getFittestGenome = function(){
-        return this._population[ this._fittestIndex ];
+        return this._fittest;
     };
 
     return Resolver;
 })();
 
+var resolver = new Resolver();
+
+$(function(){
+    resolver.run();
+});
 
