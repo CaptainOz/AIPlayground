@@ -66,11 +66,11 @@ var Genome = (function(){
             if( Math.random() > mutationRate ){
                 continue;
             }
-            this._mutate( i );
+            this._genes[i] = this._mutate( this._genes[i] );
         }
     }
     
-    GenomeProto._mutate = function( index ){
+    GenomeProto._mutate = function( gene ){
         throw new Error( 'Missing Genome::_mutate method.' );
     };
     
