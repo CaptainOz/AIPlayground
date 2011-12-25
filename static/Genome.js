@@ -1,15 +1,14 @@
 
-/// A genome.
+/// The genome super class.
 ///
-/// Each chromosome in this genome is either a 1 or a 0. Each gene is made of
-/// two chromosomes which give 4 possible combinations. They are read as follows:
-///  - 00 : North
-///  - 01 : East
-///  - 10 : South
-///  - 11 : West
+/// Any subclassed genomes need to implement the following methods:
+///  - _generateGene
+///  - _mutate
+///  - _crossOver
+///  - _calculateFitness
+///  - render
+///
 var Genome = (function(){
-    var directions = [ 'n', 'e', 's', 'w' ];
-
     /// Constructor.
     ///
     /// This has one parameter which can be either a Genome to copy or an
@@ -44,9 +43,13 @@ var Genome = (function(){
     /// @param {Number} length The number of genes to generate.
     function _populateRandom( length ){
         for( var i = 0; i < length * this._geneSize; ++i ){
-            this._genes.push( Math.floor( Math.random() * 2 ) );
+            this._genes.push( this._generateGene() );
         }
     }
+    
+    GenomeProto._generateGene = function(){
+        throw new Error( 'Missing Genome::_generateGene method' );
+    };
     
     /// Randomly mutates this genome.
     ///
@@ -63,9 +66,13 @@ var Genome = (function(){
             if( Math.random() > mutationRate ){
                 continue;
             }
-            this._genes[i] ^= 1;
+            this._mutate( i );
         }
     }
+    
+    GenomeProto._mutate = function( index ){
+        throw new Error( 'Missing Genome::_mutate method.' );
+    };
     
     /// Combines this Genome with the provided dad Genome.
     ///
@@ -83,29 +90,23 @@ var Genome = (function(){
     /// @return {Array<Genome>} The babies generated from the crossover.
     function _crossOver( dad, crossOverRate ){
         // Are we going to cross over at all, or just clone?
+        var thisClass = this.constructor;
         if( Math.random() > crossOverRate || this === dad ){
             return [
-                new Genome( this ),
-                new Genome( dad )
+                new thisClass( this ),
+                new thisClass( dad )
             ];
         }
         
-        // We're crossing over. Mix those genes, but make sure we only mix whole
-        // genes.
-        var litter = [ new Genome(), new Genome() ];
-        var crossPoint = Math.floor( Math.random() * this._genes.length );
-        crossPoint -= (crossPoint % this._geneSize);
-        
-        // Copy the genes over, crossing over at the point decided above.
-        var push = Array.prototype.push;
-        push.apply( litter[0]._genes, this._genes.slice( 0, crossPoint ) );
-        push.apply( litter[1]._genes,  dad._genes.slice( 0, crossPoint ) );
-        push.apply( litter[0]._genes,  dad._genes.slice( crossPoint    ) );
-        push.apply( litter[1]._genes, this._genes.slice( crossPoint    ) );
-        
-        // And we're done with the dirty work.
+        // We're crossing over. Let the sub-class handle the dirty work.
+        var litter = [ new thisClass(), new thisClass() ];
+        this._crossOver( dad, litter );
         return litter;
     }
+    
+    GenomeProto._crossOver = function( dad, litter ){
+        throw new Error( 'Missing Genome::_crossOverGenomes method' );
+    };
     
     /// Breed this Genome with another to generate offspring.
     ///
@@ -126,74 +127,12 @@ var Genome = (function(){
     ///
     /// @return {Number} The fitness score of this genome.
     GenomeProto.test = function(){
-        // Run this path through the maze.
-        var route    = this.getRoute();
-        var cellType = null;
-        while( (cellType = route.step()) !== null && cellType != 'E' ){}
-        
-        // Calculate the route's fitness.
-        var position = route.getPosition();
-        var end      = g_maze.end;
-        var distance = [ Math.abs( position[0] - end[0] ), Math.abs( position[1] - end[1] ) ];
-        this._fitness = 1.0 / ( distance[0] + distance[1] + 1 );
+        this._fitness = this._calculateFitness();
         return this._fitness;
     };
-
-    /// Translates this Genome's genes into a route to follow through the maze.
-    ///
-    /// @this {Genome}
-    ///
-    /// @return {Array<String>} An array of cardinal directions to take.
-    GenomeProto.getRoute = function(){
-        var route = [];
-        for( var i = 0; i < this._genes.length; i += this._geneSize ){
-            var geneHigh = this._genes[i];
-            var geneLow  = this._genes[i + 1];
-            var move = (geneHigh << 1) ^ geneLow;
-            route.push( directions[ move ] );
-        }
-        return new Route( route );
-    };
     
-    function Route( route ){
-        this._route    = route;
-        this._step     = 0;
-        this._position = g_maze.start.concat([]);
-    }
-    var RouteProto = Route.prototype;
-    
-    RouteProto.step = function(){
-        if( this._step >= this._route.length ){
-            return null;
-        }
-        var nextPosition = null;
-        var nextCell     = null;
-        do {
-            // Adjust our position according to the move we are going to make.
-            var move = this._route[ this._step++ ];
-            nextPosition = this._position.concat([]);
-            if( move == 'n' ){
-                ++nextPosition[1];
-            }
-            else if( move == 'e' ){
-                ++nextPosition[0];
-            }
-            else if( move == 's' ){
-                --nextPosition[1];
-            }
-            else {
-                --nextPosition[0];
-            }
-            
-            // Only take the next step if it is blank or the end of the maze.
-            nextCell = g_maze.getTile.apply( g_maze, nextPosition );
-        } while( !(nextCell == 'B' || nextCell == 'E') && this._step < this._route.length );
-        this._position = nextPosition;
-        return nextCell;
-    };
-    
-    RouteProto.getPosition = function(){
-        return this._position;
+    GenomeProto._calculateFitness = function(){
+        throw new Error( 'Missing Genome::_calculateFitness method' );
     };
 
     /// Returns the Genome's fitness score.
@@ -205,22 +144,10 @@ var Genome = (function(){
 
     
     /// Draws this genome's path on through the maze.
+    ///
+    /// @virtual
     GenomeProto.render = function(){
-        // Redraw the map to clear any previous runs.
-        g_maze.render();
-
-        // Step through the route and draw each of the tiles as grey.
-        var route    = this.getRoute();
-        var tileType = null;
-        var style    = { type : 'fill', style : 'grey' };
-        while( (tileType = route.step()) !== null && tileType !== 'E' ){
-            var cell = route.getPosition();
-            g_maze.drawTile( cell, style );
-        }
-        
-        // Redraw the final tile as purple so we can see where we ended up.
-        style.style = 'purple';
-        g_maze.drawTile( route.getPosition(), style );
+        throw new Error( 'Missing Genome::render method.' );
     };
 
     return Genome;
