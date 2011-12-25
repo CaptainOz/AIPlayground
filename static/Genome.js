@@ -36,6 +36,13 @@ var Genome = (function(){
     }
     var GenomeProto = Genome.prototype;
     
+    Genome.inheritFrom = function( subClass ){
+        subClass.prototype = new Genome();
+        var subProto = subClass.prototype;
+        subProto.constructor = subClass;
+        subProto._super      = Genome;
+    };
+    
     /// Generates a random chromosome string.
     ///
     /// @this {Genome}

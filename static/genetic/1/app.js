@@ -131,10 +131,8 @@ var PathFinderGenome = (function(){
     function PathFinderGenome( arg ){
         this._super( arg );
     }
-    PathFinderGenome.prototype = new Genome();
+    Genome.inheritFrom( PathFinderGenome );
     var PathFinderGenomeProto = PathFinderGenome.prototype;
-    PathFinderGenomeProto.constructor = PathFinderGenome;
-    PathFinderGenomeProto._super      = Genome;
 
     PathFinderGenomeProto._generateGene = function(){
         return Math.floor( Math.random() * 2 );
