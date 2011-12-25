@@ -4,7 +4,6 @@ var Resolver = Resolver || null;
 var g_canvas = g_canvas || null;
 var g_maze = null;
 
-
 $(function(){
     // The maze is just an array of integers.
     //  1 - A wall.

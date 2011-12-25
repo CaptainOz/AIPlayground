@@ -10,7 +10,7 @@ var Resolver = (function(){
     /// - {Number} genomeLength
     /// - {Number} errorTolerance
     /// - {Number} maxGenerations
-    /// - {Genome} genomeClass
+    /// - {Genome} genomeClass      Required.
     ///
     /// @param {Object} args Configuration mapping.
     function Resolver( args ){
