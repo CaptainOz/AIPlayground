@@ -1,5 +1,10 @@
-var g_canvas = g_canvas || {};
+
+// Declare global variables and imported classes.
+var Resolver = Resolver || null;
+var g_canvas = g_canvas || null;
 var g_maze = null;
+
+
 $(function(){
     // The maze is just an array of integers.
     //  1 - A wall.
@@ -140,6 +145,7 @@ var Genome = (function(){
             }
         }
     }
+    var GenomeProto = Genome.prototype;
     
     /// Generates a random chromosome string.
     ///
@@ -218,7 +224,7 @@ var Genome = (function(){
     /// @param {Number} crossOverRate
     ///
     /// @return {Array<Genome>}
-    Genome.prototype.mate = function( dad, mutationRate, crossOverRate ){
+    GenomeProto.mate = function( dad, mutationRate, crossOverRate ){
         var litter = _crossOver.call( this, dad, crossOverRate );
         for( var i in litter ){
             _mutate.call( litter[i], mutationRate );
@@ -229,7 +235,7 @@ var Genome = (function(){
     /// Runs this Genome through the maze and caclulates its fitness score.
     ///
     /// @return {Number} The fitness score of this genome.
-    Genome.prototype.test = function(){
+    GenomeProto.test = function(){
         // Run this path through the maze.
         var route    = this.getRoute();
         var cellType = null;
@@ -248,7 +254,7 @@ var Genome = (function(){
     /// @this {Genome}
     ///
     /// @return {Array<String>} An array of cardinal directions to take.
-    Genome.prototype.getRoute = function(){
+    GenomeProto.getRoute = function(){
         var route = [];
         for( var i = 0; i < this._genes.length; i += this._geneSize ){
             var geneHigh = this._genes[i];
@@ -264,8 +270,9 @@ var Genome = (function(){
         this._step     = 0;
         this._position = g_maze.start.concat([]);
     }
+    var RouteProto = Route.prototype;
     
-    Route.prototype.step = function(){
+    RouteProto.step = function(){
         if( this._step >= this._route.length ){
             return null;
         }
@@ -295,21 +302,41 @@ var Genome = (function(){
         return nextCell;
     };
     
-    Route.prototype.getPosition = function(){
+    RouteProto.getPosition = function(){
         return this._position;
     };
 
     /// Returns the Genome's fitness score.
     ///
     /// @return {Number} The fitness score.
-    Genome.prototype.getFitness = function(){
+    GenomeProto.getFitness = function(){
         return this._fitness;
+    };
+
+    
+    /// Draws this genome's path on through the maze.
+    GenomeProto.render = function(){
+        // Redraw the map to clear any previous runs.
+        g_maze.render();
+
+        // Step through the route and draw each of the tiles as grey.
+        var route    = this.getRoute();
+        var tileType = null;
+        var style    = { type : 'fill', style : 'grey' };
+        while( (tileType = route.step()) !== null && tileType !== 'E' ){
+            var cell = route.getPosition();
+            g_maze.drawTile( cell, style );
+        }
+        
+        // Redraw the final tile as purple so we can see where we ended up.
+        style.style = 'purple';
+        g_maze.drawTile( route.getPosition(), style );
     };
 
     return Genome;
 })();
 
-var resolver = new Resolver();
+var resolver = new Resolver( { genomeClass : Genome } );
 
 $(function(){
     resolver.run();

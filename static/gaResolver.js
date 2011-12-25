@@ -1,4 +1,3 @@
-var Genome = Genome || {};
 
 /// The Resolver runs the genetic algorithm until a solution is found.
 var Resolver = (function(){
@@ -11,6 +10,7 @@ var Resolver = (function(){
     /// - {Number} genomeLength
     /// - {Number} errorTolerance
     /// - {Number} maxGenerations
+    /// - {Genome} genomeClass
     ///
     /// @param {Object} args Configuration mapping.
     function Resolver( args ){
@@ -21,7 +21,8 @@ var Resolver = (function(){
             populationSize : 150,
             genomeLength   : 70,
             errorTolerance : 0.01,
-            maxGenerations : 1000
+            maxGenerations : 1000,
+            genomeClass    : null
         }, args );
         this._fittest      = null;
         this._bestFitness  = 0;
@@ -30,6 +31,7 @@ var Resolver = (function(){
 
         _generateRandomPopulation.call( this );
     }
+    var ResolverProto = Resolver.prototype;
 
     /// Performs the chosen selection method to fetch a single individual.
     ///
@@ -89,6 +91,7 @@ var Resolver = (function(){
     function _generateRandomPopulation(){
         var maxPopSize   = this._args.populationSize;
         var genomeLength = this._args.genomeLength;
+        var Genome       = this._args.genomeClass;
         while( this._population.length < maxPopSize ){
             this._population.push( new Genome( genomeLength ) );
         }
@@ -96,7 +99,7 @@ var Resolver = (function(){
 
     /// Runs the resolver until the generation limit is hit or a solution is
     /// found.
-    Resolver.prototype.run = function(){
+    ResolverProto.run = function(){
         // Test this generation then get and render the most fit genome.
         this.step();
         var fittest = this.getFittestGenome();
@@ -108,15 +111,15 @@ var Resolver = (function(){
         var fitness = fittest.getFitness();
         var counter = this._generationCounter;
         console.log( counter + ': ' + fitness );
-        this.render( fittest );
+        fittest.render();
         if( fitness < tolerableFitness && counter < this._args.maxGenerations ){
             setTimeout( _run.bind( this ), 66 );
         }
     };
-    var _run = Resolver.prototype.run;
+    var _run = ResolverProto.run;
 
     /// Tests the current generation and then generates the next one.
-    Resolver.prototype.step = function(){
+    ResolverProto.step = function(){
         _updateFitnessScores.call( this );
         var babies = [];
         var crossOverRate = this._args.crossOverRate;
@@ -129,37 +132,18 @@ var Resolver = (function(){
         this._population = babies;
         ++this._generationCounter;
     };
-    
-    /// Displays the path of the provided genome.
-    ///
-    /// If no genome is provided then the fittest one is used.
-    ///
-    /// @param {Genome} genome The genome to render.
-    Resolver.prototype.render = function( genome ){
-        // Redraw the map to clear previous runs.
-        g_maze.render();
-
-        var route    = (genome || this.getFittestGenome()).getRoute();
-        var tileType = null;
-        var style    = { type : 'fill', style : 'grey' };
-        while( (tileType = route.step()) !== null && tileType !== 'E' ){
-            var cell = route.getPosition();
-            g_maze.drawTile( cell, style );
-        }
-        g_maze.drawTile( route.getPosition(), { type : 'fill', style : 'purple' } );
-    };
 
     /// Gets the number of the current generation.
     ///
     /// @return {Number} The current generation's number.
-    Resolver.prototype.getGeneration = function(){
+    ResolverProto.getGeneration = function(){
         return this._generationCounter;
     };
     
     /// Gets the most fit Genome from the current population.
     ///
     /// @return {Genome} The most fit Genome.
-    Resolver.prototype.getFittestGenome = function(){
+    ResolverProto.getFittestGenome = function(){
         return this._fittest;
     };
 
