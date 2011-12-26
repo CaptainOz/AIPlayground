@@ -1,7 +1,7 @@
 About
 =====
 This is just a small library of JavaScript AI classes to teach myself genetic
-algorithms and neuro networks.
+algorithms and neuro networks. All data is in the static directory.
 
 Resolver
 ========
@@ -18,6 +18,7 @@ inherit from the Genome class, including adding a `_super` method which is the
 Genome constructor.
 
 Classes inheriting from Genome must implement the following methods:
+
  - _generateGene
    - Randomly generates a single gene.
  - _mutate
@@ -29,3 +30,7 @@ Classes inheriting from Genome must implement the following methods:
  - render
    - Draw the genome to screen.
 
+Examples and Tom-foolery
+========================
+The root index file (static/index.html) provides links to all the examples and
+play things I have built using these classes.
